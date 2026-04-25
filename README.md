@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClearBrief — Aviation NOTAM Intelligence
 
-## Getting Started
+ClearBrief is a safety dashboard that translates raw FAA NOTAMs (Notices to Air Missions) into plain-English summaries that pilots can act on in seconds. NOTAMs are critical safety notices about runway closures, navigation aid outages, and airspace restrictions, but their terse coded format requires expert knowledge to decode quickly. ClearBrief solves this by feeding raw NOTAM text to Claude and returning structured, severity-ranked cards — turning opaque bureaucratic text into an immediate go/no-go picture before a flight.
 
-First, run the development server:
+## Architecture
+- **Next.js App Router** — server-side route handler processes all AI requests; client component handles search state and card rendering
+- **Claude AI parsing layer** — raw NOTAM strings are sent to Claude on every request, which returns a strict typed JSON array with severity classification and plain-English summaries
+- **FAA-format NOTAM data** — realistic mock NOTAM strings keyed by ICAO code, representative of actual FAA NOTAM formatting conventions
 
-```bash
+## Why LLM parsing
+
+NOTAMs follow no single consistent format — abbreviations, date encodings, and field ordering vary by facility and era, making regex-based parsing brittle and incomplete. Claude understands aviation context and intent, correctly interpreting shorthand like `RWY 04L CLSD` or `ILS U/S` even when surrounding fields are malformed or absent. The output is constrained to a strict typed JSON schema (`id`, `severity`, `category`, `title`, `plain_english`, `expires`, `raw`), giving the benefits of LLM comprehension with the reliability of structured data.
+
+## Demo airports
+- **KJFK** — John F. Kennedy International Airport, New York
+- **KLGA** — LaGuardia Airport, New York
+- **KEWR** — Newark Liberty International Airport, New Jersey
+- **KTEB** — Teterboro Airport, New Jersey
+- **KHPN** — Westchester County Airport, New York
+- **KLAX** — Los Angeles International Airport, California
+
+## Setup
+```
+npm install
+```
+Add `ANTHROPIC_API_KEY` to `.env.local`
+```
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Anthropic Claude claude-sonnet-4-6
