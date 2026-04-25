@@ -95,7 +95,7 @@ Swapping in live data requires exactly one change — replacing the mock lookup 
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/yourusername/clearbrief
+git clone https://github.com/1abbasia/clearbrief
 cd clearbrief
 npm install
 
