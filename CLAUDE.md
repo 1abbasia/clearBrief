@@ -16,7 +16,8 @@ Next.js 14 App Router · TypeScript · Tailwind CSS · @anthropic-ai/sdk
 
 ## File Map — every file in this project
 /types/index.ts              — shared interfaces, nothing else
-/app/api/notams/route.ts     — POST handler, FAA fetch + Claude parse
+/data/mock-notams.ts         — raw NOTAM strings keyed by ICAO code
+/app/api/notams/route.ts     — POST handler, mock lookup + Claude parse
 /app/page.tsx                — client component, search + card grid
 /components/HazardCard.tsx   — single card, severity-colored
 /components/SearchBar.tsx    — ICAO input, uppercase, Enter to search
@@ -33,8 +34,7 @@ Next.js 14 App Router · TypeScript · Tailwind CSS · @anthropic-ai/sdk
 - Tailwind only. No CSS files. No inline style blocks.
 - Dark mode only. No light mode toggle.
 
-## Data Types — copy exactly into /types/index.ts
-
+## Data Types — defined in /types/index.ts
 interface NotamItem {
   id: string
   severity: 'CRITICAL' | 'WARNING' | 'CLEAR'
@@ -51,25 +51,26 @@ interface ApiResponse {
   fetched_at: string
 }
 
-## Live Data
-FAA NOTAM API — official source, requires FAA_API_KEY in .env.local
-GET https://api.faa.gov/notams/v1/notams?icao={ICAO}&pageSize=30
-Header: Authorization: Bearer process.env.FAA_API_KEY
-Extract the "traditionalMessage" field from each item in the "items" array.
-That string is the raw NOTAM text to send Claude.
+## Data Strategy
+Mock data lives in /data/mock-notams.ts as a TypeScript object:
+  export default { KJFK: "raw string", KLAX: "raw string", ... }
 
-On ANY fetch or parse error use this inline fallback — no mock file, no separate JSON:
+The raw strings are realistic FAA-format NOTAM text.
+Claude parses this raw text on every request — the AI work is real.
+Supported airports: KJFK, KLGA, KEWR, KTEB, KHPN, KLAX
+
+On unrecognized ICAO code return the inline FALLBACK — no crash.
+
+Inline fallback (used in route.ts, no separate file):
 [{ id:"fallback-1", severity:"WARNING", category:"System",
-title:"Live data unavailable",
-plain_english:"Could not reach FAA API. Verify airport code and retry.",
+title:"Airport not in demo database",
+plain_english:"This airport is not in the demo dataset. Try KJFK, KLGA, KEWR, KTEB, KHPN, or KLAX.",
 expires:"N/A", raw:"" }]
 
 ## Environment Variables
-ANTHROPIC_API_KEY — from console.anthropic.com
-FAA_API_KEY — from api.faa.gov free registration
+ANTHROPIC_API_KEY — from console.anthropic.com — required
 
 ## Claude Parsing Prompt — paste verbatim into route.ts, do not rephrase
-
 SYSTEM:
 "You are an aviation safety parser. Return ONLY a raw JSON array. No markdown. No explanation. No code fences. Each element must match exactly: {id:string, severity:'CRITICAL'|'WARNING'|'CLEAR', category:string, title:string, plain_english:string, expires:string, raw:string}. Severity rules: CRITICAL=runway or taxiway closure, nav aid outage, airspace TFR. WARNING=construction, lighting issue, partial restriction. CLEAR=admin or procedural notice."
 
@@ -80,7 +81,7 @@ USER:
 - One component per file, max 80 lines each
 - No useEffect for data fetching — use route handlers only
 - All interfaces imported from /types/index.ts
-- process.env.ANTHROPIC_API_KEY and process.env.FAA_API_KEY only — never hardcode
+- process.env.ANTHROPIC_API_KEY only — never hardcode keys
 - No animation libraries, no UI component libraries
 - Server component by default — add 'use client' only when required
 - TypeScript strict mode — no 'any' types
