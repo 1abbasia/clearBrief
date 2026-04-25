@@ -1,13 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import mockNotams from '@/data/mock-notams'
 
 const FALLBACK: NotamItem[] = [
   {
     id: 'fallback-1',
     severity: 'WARNING',
     category: 'System',
-    title: 'Live data unavailable',
-    plain_english: 'Could not reach FAA API. Verify airport code and retry.',
+    title: 'Airport not in demo database',
+    plain_english:
+      'This airport is not in the demo dataset. Try KJFK, KLGA, KEWR, KTEB, KHPN, or KLAX.',
     expires: 'N/A',
     raw: '',
   },
@@ -35,23 +37,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json()
     icao = body.icao as string
 
-    const faaRes = await fetch(
-      `https://api.faa.gov/notams/v1/notams?icao=${icao}&pageSize=30`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.FAA_API_KEY}`,
-        },
-      }
-    )
-
-    if (!faaRes.ok) throw new Error('FAA fetch failed')
-
-    const faaData = await faaRes.json()
-    const items: { traditionalMessage?: string }[] = faaData.items ?? []
-    const raw_text = items
-      .map((item) => item.traditionalMessage ?? '')
-      .filter(Boolean)
-      .join('\n')
+    const rawText = mockNotams[icao.toUpperCase()]
+    if (!rawText) {
+      return NextResponse.json({
+        icao,
+        notams: FALLBACK,
+        fetched_at: new Date().toISOString(),
+      })
+    }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -63,7 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       messages: [
         {
           role: 'user',
-          content: `Parse these NOTAMs for ${icao}: ${raw_text}`,
+          content: `Parse these NOTAMs for ${icao}: ${rawText}`,
         },
       ],
     })
